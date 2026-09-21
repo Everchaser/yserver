@@ -8,7 +8,7 @@ ProtocolRequest JsonRequestParser::parseRequest(const std::string& payload)
 
     ProtocolRequest request;
 
-    request.event = std::string(jsonObject.at("event").as_string());
+    request.event = boost::json::value_to<std::string>(jsonObject.at("event"));
 
     request.data = jsonObject.at("data").as_object();
 
@@ -16,7 +16,7 @@ ProtocolRequest JsonRequestParser::parseRequest(const std::string& payload)
 
     if (tokenIterator != jsonObject.end())
     {
-        request.token = std::string(tokenIterator->value().as_string());
+        request.token = boost::json::value_to<std::string>(tokenIterator->value());
     }
 
     return request;

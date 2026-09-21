@@ -8,4 +8,8 @@ struct ProtocolResponse
 
     Status status = Status::ERR;
     std::string message;
+
+    ProtocolResponse() = default;
+    ProtocolResponse(Status responseStatus, const std::string& responseMessage)
+        : status(responseStatus), message(responseMessage) {}
 };

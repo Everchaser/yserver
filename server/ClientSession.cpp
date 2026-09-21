@@ -51,8 +51,8 @@ ProtocolResponse ClientSession::handleRequest(const ProtocolRequest& request)
 
 ProtocolResponse ClientSession::handleRegistration(const ProtocolRequest& request)
 {
-    const std::string login(request.data.at("login").as_string());
-    const std::string password(request.data.at("password").as_string());
+    const std::string login = boost::json::value_to<std::string>(request.data.at("login"));
+    const std::string password = boost::json::value_to<std::string>(request.data.at("password"));
     if (login.empty() || password.empty())
         return {ProtocolResponse::Status::ERR, "Логин и пароль не должны быть пустыми"};
 

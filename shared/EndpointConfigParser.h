@@ -6,7 +6,4 @@
 class ParserConfig {
 public:
     EndpointConfig parse(const std::string& filePayload);
-
-private:
-
 };

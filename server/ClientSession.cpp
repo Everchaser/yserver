@@ -5,13 +5,6 @@
 #include "JsonRequestParser.h"
 #include "CommandUtils.h"
 
-std::string make_daytime_string()
-{
-    std::time_t now = std::time(nullptr);
-
-    return ctime(&now);
-}
-
 void Session::on_read(const boost::system::error_code &error,
                       std::size_t bytes)
 

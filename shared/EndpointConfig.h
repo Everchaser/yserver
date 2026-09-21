@@ -1,6 +1,5 @@
 // Адрес подключения; конструктор проверяет диапазон TCP-порта.
 #pragma once
-#include <set>
 #include <string>
 
 class EndpointConfig {
@@ -17,5 +16,4 @@ private:
     std::string host_;
     int port_;
 
-    static std::set<std::string> allowed_protocols_;
 };

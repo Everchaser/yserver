@@ -4,7 +4,6 @@
 #include <string>
 #include <memory>
 #include <utility>
-#include <ctime>
 #include "UserDirectoryDatabase.h"
 
 using boost::asio::ip::tcp;

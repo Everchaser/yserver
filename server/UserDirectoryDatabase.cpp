@@ -42,22 +42,22 @@ std::string hashPassword(const std::string& password)
 }
 }
 
-UserDirectoryDatabase::UserDirectoryDatabase(const std::filesystem::path& root)
+UserDirectoryDatabase::UserDirectoryDatabase(const boost::filesystem::path& root)
     : usersDirectory_(root / "users")
 {
     // Отсутствующая или повреждённая база — ошибка запуска, а не пустая база.
-    for (const auto& entry : std::filesystem::directory_iterator(usersDirectory_))
+    for (const auto& entry : boost::filesystem::directory_iterator(usersDirectory_))
     {
-        if (!entry.is_regular_file() || entry.path().extension() != ".json")
+        if (!boost::filesystem::is_regular_file(entry.path()) || entry.path().extension() != ".json")
             continue;
         try
         {
             const auto value = boost::json::parse(TextFileReader(entry.path().string()).readFile());
             const auto& object = value.as_object();
-            User user{std::string(object.at("uuid").as_string()),
-                      std::string(object.at("login").as_string()),
-                      std::string(object.at("password_hash").as_string()),
-                      std::string(object.at("token_hash").as_string())};
+            User user{boost::json::value_to<std::string>(object.at("uuid")),
+                      boost::json::value_to<std::string>(object.at("login")),
+                      boost::json::value_to<std::string>(object.at("password_hash")),
+                      boost::json::value_to<std::string>(object.at("token_hash"))};
             const auto uuid = boost::uuids::string_generator()(user.uuid);
             if (uuid.is_nil() || boost::uuids::to_string(uuid) != user.uuid ||
                 entry.path().stem().string() != user.uuid ||
@@ -75,7 +75,7 @@ UserDirectoryDatabase::UserDirectoryDatabase(const std::filesystem::path& root)
 
 bool UserDirectoryDatabase::hasLogin(const std::string& login) const
 {
-    return usersByLogin_.contains(login);
+    return usersByLogin_.find(login) != usersByLogin_.end();
 }
 
 bool UserDirectoryDatabase::registerUser(const std::string& login, const std::string& password)
@@ -97,15 +97,15 @@ bool UserDirectoryDatabase::registerUser(const std::string& login, const std::st
     {
         std::ofstream file;
         file.exceptions(std::ios::failbit | std::ios::badbit);
-        file.open(temporaryPath);
+        file.open(temporaryPath.string());
         file << boost::json::serialize(object) << '\n';
         file.close();
-        std::filesystem::rename(temporaryPath, path);
+        boost::filesystem::rename(temporaryPath, path);
     }
     catch (...)
     {
-        std::error_code ignored;
-        std::filesystem::remove(temporaryPath, ignored);
+        boost::system::error_code ignored;
+        boost::filesystem::remove(temporaryPath, ignored);
         throw;
     }
     usersByLogin_.emplace(login, std::move(user));

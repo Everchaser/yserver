@@ -34,7 +34,6 @@
 
 # Local IDE settings and editor temporary files
 /.idea/
-/.vscode/
 /.cache/
 *.swp
 *.swo
@@ -43,3 +42,5 @@
 # OS metadata
 .DS_Store
 Thumbs.db
+config.bat
+node_modules

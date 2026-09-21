@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 project(mentorshipproject LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-find_package(Boost REQUIRED COMPONENTS json)
+set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(Boost REQUIRED COMPONENTS json filesystem)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
@@ -43,4 +44,4 @@ add_executable(server
     server/ClientSession.cpp
     server/UserDirectoryDatabase.cpp
 )
-target_link_libraries(server PRIVATE tcp_common Threads::Threads OpenSSL::Crypto)
+target_link_libraries(server PRIVATE tcp_common Boost::filesystem Threads::Threads OpenSSL::Crypto)

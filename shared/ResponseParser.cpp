@@ -17,7 +17,7 @@ ProtocolResponse ResponseParser::parseResponse(const std::string& payload) const
     else
         throw std::invalid_argument("Unknown response status");
 
-    response.message = std::string(object.at("message").as_string());
+    response.message = boost::json::value_to<std::string>(object.at("message"));
     return response;
 }
 

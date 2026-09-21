@@ -24,9 +24,9 @@ int main(int argc, char** argv)
         std::cout << "port: " << config.port() << '\n';
 
         boost::asio::io_context ioContext;
-        const std::filesystem::path databasePath = argc == 3
-            ? std::filesystem::path(argv[2])
-            : std::filesystem::path(argv[1]).parent_path() / "mock_db";
+        const boost::filesystem::path databasePath = argc == 3
+            ? boost::filesystem::path(argv[2])
+            : boost::filesystem::path(argv[1]).parent_path() / "mock_db";
         UserDirectoryDatabase database(databasePath);
         std::cout << "База данных: " << databasePath << ", пользователей: " << database.size() << '\n';
         TcpServer server(ioContext, config, database);

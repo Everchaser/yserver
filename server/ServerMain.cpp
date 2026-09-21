@@ -32,7 +32,7 @@ int main(int ac, char **av)
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "Ошибка сервера: " << e.what() << '\n';
         return 1;
     }
 

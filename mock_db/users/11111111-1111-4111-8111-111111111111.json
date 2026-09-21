@@ -1,0 +1,6 @@
+{
+  "uuid": "11111111-1111-4111-8111-111111111111",
+  "login": "alice",
+  "password_hash": "pbkdf2-sha256$600000$3158ef0d5d760eebf9cb4ddfa125b01a$73f4598f3a5203f22ff2c6d510e17207ca557e594fbc00d5a48a2a4ed12e5459",
+  "token_hash": ""
+}

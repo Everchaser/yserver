@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 #include <ctime>
+#include "UserDirectoryDatabase.h"
 
 using boost::asio::ip::tcp;
 void read(const boost::system::error_code &error,
@@ -13,8 +14,8 @@ std::size_t bytes);
 class Session : public std::enable_shared_from_this<Session> {
 public:
 
-    Session(tcp::socket socket)
-    : socket_ (std::move(socket)) {}
+    Session(tcp::socket socket, UserDatabase& database)
+    : socket_ (std::move(socket)), database_(database) {}
     void start();
 
     tcp::socket& socket() {
@@ -23,6 +24,7 @@ public:
 
 private:
     tcp::socket socket_;
+    UserDatabase& database_;
     boost::asio::streambuf requestBuffer_;
     std::string responseText_;
 

@@ -6,12 +6,18 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost REQUIRED COMPONENTS json)
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 # Отдельный каталог исключает конфликт имён программ с client/ и server/.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 # Настройки копируются в bin рядом с исполняемыми файлами.
 configure_file(EndpointConfig.json "${CMAKE_BINARY_DIR}/bin/EndpointConfig.json" COPYONLY)
+
+# Не перезаписываем рабочую базу при повторной конфигурации сборки.
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/bin/mock_db")
+    file(COPY mock_db DESTINATION "${CMAKE_BINARY_DIR}/bin")
+endif()
 
 # Конфигурация, чтение файлов и JSON-протокол используются обоими приложениями.
 add_library(tcp_common STATIC
@@ -35,7 +41,6 @@ add_executable(server
     server/ServerMain.cpp
     server/TcpServer.cpp
     server/ClientSession.cpp
+    server/UserDirectoryDatabase.cpp
 )
-target_link_libraries(server PRIVATE tcp_common Threads::Threads)
-
-# server/UserDirectoryDatabase.cpp остаётся вне сборки: это незавершённая заготовка.
+target_link_libraries(server PRIVATE tcp_common Threads::Threads OpenSSL::Crypto)

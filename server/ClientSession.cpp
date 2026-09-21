@@ -35,6 +35,29 @@ void Session::on_read(const boost::system::error_code &error,
         {
             response = {ProtocolResponse::Status::OK, "Сервер работает"};
         }
+        else if (commandEquals(request.event, "REGISTER"))
+        {
+            const std::string login(request.data.at("login").as_string());
+            const std::string password(request.data.at("password").as_string());
+            if (login.empty() || password.empty())
+            {
+                response = {ProtocolResponse::Status::ERR, "Логин и пароль не должны быть пустыми"};
+            }
+            else
+            {
+                try
+                {
+                    response = database_.registerUser(login, password)
+                        ? ProtocolResponse{ProtocolResponse::Status::OK, "Пользователь зарегистрирован"}
+                        : ProtocolResponse{ProtocolResponse::Status::ERR, "Логин уже занят"};
+                }
+                catch (const std::exception& error)
+                {
+                    std::cerr << "Ошибка базы данных: " << error.what() << '\n';
+                    response = {ProtocolResponse::Status::ERR, "Не удалось сохранить пользователя"};
+                }
+            }
+        }
         else
         {
             response = {ProtocolResponse::Status::ERR, "Неизвестная команда"};

@@ -9,9 +9,9 @@ int main(int ac, char **av)
 {
     try
     {
-        if (ac != 2)
+        if (ac != 2 && ac != 3)
         {
-            std::cerr << "Usage: server <config.json>\n";
+            std::cerr << "Usage: server <config.json> [database-directory]\n";
             return 1;
         }
 
@@ -24,10 +24,15 @@ int main(int ac, char **av)
         std::cout << "port: " << config.port() << '\n';
 
         boost::asio::io_context io_context;
-        Server server(io_context, config);
-        io_context.run();
+        const std::filesystem::path databasePath = ac == 3
+            ? std::filesystem::path(av[2])
+            : std::filesystem::path(av[1]).parent_path() / "mock_db";
+        UserDatabase database(databasePath);
+        std::cout << "База данных: " << databasePath << ", пользователей: " << database.size() << '\n';
+        Server server(io_context, config, database);
         std::cout << "Listening on " << config.host()
                   << " port " << config.port() << std::endl;
+        io_context.run();
 
     }
     catch (const std::exception &e)

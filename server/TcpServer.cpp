@@ -6,8 +6,10 @@
 #include <iostream>
 #include "ClientSession.h"
 
-Server::Server(boost::asio::io_context &context, const EndpointConfig &config)
-    : acceptor_(context, tcp::endpoint(boost::asio::ip::make_address(config.host()),
+Server::Server(boost::asio::io_context &context, const EndpointConfig &config,
+               UserDatabase& database)
+    : database_(database),
+      acceptor_(context, tcp::endpoint(boost::asio::ip::make_address(config.host()),
                                     config.port())),
                                     statisticsTimer_(context),
                                     statusTimer_(context)
@@ -65,7 +67,7 @@ void Server::on_accept(const boost::system::error_code &error,
     }
     ++acceptedClients_;
     std::shared_ptr<Session> session =
-        std::make_shared<Session>(std::move(socket));
+        std::make_shared<Session>(std::move(socket), database_);
     session->start();
     do_accept();
 }

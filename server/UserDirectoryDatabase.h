@@ -1,13 +1,28 @@
-// Незавершённая заготовка поиска пользователя в каталоге; не включена в сборку.
 #pragma once
-#include <string>
 
+#include <filesystem>
+#include <string>
+#include <unordered_map>
+
+struct User
+{
+    std::string uuid;
+    std::string login;
+    std::string password_hash;
+    std::string token_hash;
+};
+
+// Один JSON-файл на пользователя: <root>/users/<uuid>.json.
+// Вызывается из единственного потока io_context сервера.
 class UserDatabase
 {
 public:
-    bool hasLogin(const std::string& login);
+    explicit UserDatabase(const std::filesystem::path& root);
+    bool hasLogin(const std::string& login) const;
+    bool registerUser(const std::string& login, const std::string& password);
+    std::size_t size() const { return users_.size(); }
 
 private:
-    const std::string directoryPath_ =
-        "/home/everchaser/dio";
+    std::filesystem::path directoryPath_;
+    std::unordered_map<std::string, User> users_;
 };

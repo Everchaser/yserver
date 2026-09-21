@@ -1,19 +1,113 @@
 #include "UserDirectoryDatabase.h"
 #include "TextFileReader.h"
 #include <boost/json.hpp>
-#include <filesystem>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <array>
+#include <fstream>
+#include <limits>
+#include <stdexcept>
 
-bool UserDatabase::hasLogin(const std::string &login)
+namespace
 {
-    std::filesystem::directory_iterator file(directoryPath_);
-
-    while (file != std::filesystem::directory_iterator{})
+template<std::size_t N>
+std::string hex(const std::array<unsigned char, N>& bytes)
+{
+    constexpr char digits[] = "0123456789abcdef";
+    std::string result;
+    for (unsigned char byte : bytes)
     {
-
-        std::filesystem::path path = (*file).path();
-
-        // Заготовка не завершена: reader не объявлен, результат поиска не возвращается.
-        std::string fileText = reader.readFile();
-        ++file;
+        result += digits[byte >> 4];
+        result += digits[byte & 15];
     }
+    return result;
+}
+
+std::string hashPassword(const std::string& password)
+{
+    constexpr int iterations = 600000;
+    std::array<unsigned char, 16> salt;
+    std::array<unsigned char, 32> hash;
+    if (password.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        throw std::invalid_argument("Password too long");
+    if (RAND_bytes(salt.data(), salt.size()) != 1 ||
+        PKCS5_PBKDF2_HMAC(password.data(), static_cast<int>(password.size()),
+                          salt.data(), salt.size(), iterations, EVP_sha256(),
+                          hash.size(), hash.data()) != 1)
+        throw std::runtime_error("Password hashing failed");
+    return "pbkdf2-sha256$" + std::to_string(iterations) + "$" + hex(salt) + "$" + hex(hash);
+}
+}
+
+UserDatabase::UserDatabase(const std::filesystem::path& root)
+    : directoryPath_(root / "users")
+{
+    // Отсутствующая или повреждённая база — ошибка запуска, а не пустая база.
+    for (const auto& entry : std::filesystem::directory_iterator(directoryPath_))
+    {
+        if (!entry.is_regular_file() || entry.path().extension() != ".json")
+            continue;
+        try
+        {
+            const auto value = boost::json::parse(FileReader(entry.path().string()).readFile());
+            const auto& object = value.as_object();
+            User user{std::string(object.at("uuid").as_string()),
+                      std::string(object.at("login").as_string()),
+                      std::string(object.at("password_hash").as_string()),
+                      std::string(object.at("token_hash").as_string())};
+            const auto uuid = boost::uuids::string_generator()(user.uuid);
+            if (uuid.is_nil() || boost::uuids::to_string(uuid) != user.uuid ||
+                entry.path().stem().string() != user.uuid ||
+                user.login.empty() || user.password_hash.empty())
+                throw std::runtime_error("Invalid user fields or filename");
+            if (!users_.emplace(user.login, user).second)
+                throw std::runtime_error("Duplicate login");
+        }
+        catch (const std::exception& error)
+        {
+            throw std::runtime_error(entry.path().string() + ": " + error.what());
+        }
+    }
+}
+
+bool UserDatabase::hasLogin(const std::string& login) const
+{
+    return users_.contains(login);
+}
+
+bool UserDatabase::registerUser(const std::string& login, const std::string& password)
+{
+    if (login.empty() || password.empty())
+        throw std::invalid_argument("Login and password must not be empty");
+    if (hasLogin(login))
+        return false;
+
+    User user{boost::uuids::to_string(boost::uuids::random_generator()()),
+              login, hashPassword(password), ""};
+    const auto path = directoryPath_ / (user.uuid + ".json");
+    const auto temporaryPath = directoryPath_ / (user.uuid + ".tmp");
+    boost::json::object object{{"uuid", user.uuid}, {"login", user.login},
+                               {"password_hash", user.password_hash},
+                               {"token_hash", user.token_hash}};
+    // Сначала сохраняем полный файл, затем делаем его видимым для загрузчика.
+    try
+    {
+        std::ofstream file;
+        file.exceptions(std::ios::failbit | std::ios::badbit);
+        file.open(temporaryPath);
+        file << boost::json::serialize(object) << '\n';
+        file.close();
+        std::filesystem::rename(temporaryPath, path);
+    }
+    catch (...)
+    {
+        std::error_code ignored;
+        std::filesystem::remove(temporaryPath, ignored);
+        throw;
+    }
+    users_.emplace(login, std::move(user));
+    return true;
 }

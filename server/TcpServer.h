@@ -3,15 +3,18 @@
 #include <boost/asio.hpp>
 #include "EndpointConfig.h"
 #include "EndpointConfigParser.h"
+#include "UserDirectoryDatabase.h"
 
 using boost::asio::ip::tcp;
 
 class Server
 {
 public:
-    Server(boost::asio::io_context &context, const EndpointConfig &config);
+    Server(boost::asio::io_context &context, const EndpointConfig &config,
+           UserDatabase& database);
 
 private:
+    UserDatabase& database_;
     tcp::acceptor acceptor_;
     void do_accept();
     void on_accept(const boost::system::error_code &error,

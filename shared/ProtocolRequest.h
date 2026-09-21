@@ -4,9 +4,8 @@
 #include <boost/json.hpp>
 #include <string>
 
-class Request
+struct ProtocolRequest
 {
-public:
     std::string event;
     std::string token;
     boost::json::object data;

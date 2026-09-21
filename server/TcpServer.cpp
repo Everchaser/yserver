@@ -5,58 +5,58 @@
 #include <iostream>
 #include "ClientSession.h"
 
-Server::Server(boost::asio::io_context &context, const EndpointConfig &config,
-               UserDatabase& database)
+TcpServer::TcpServer(boost::asio::io_context& context, const EndpointConfig& config,
+                     UserDirectoryDatabase& database)
     : database_(database),
       acceptor_(context, tcp::endpoint(boost::asio::ip::make_address(config.host()),
-                                    config.port())),
-                                    statisticsTimer_(context),
-                                    statusTimer_(context)
+                                     config.port())),
+      statisticsTimer_(context),
+      statusTimer_(context)
 {
-    do_accept();
-    start_statistics_timer();
-    start_status_timer();
+    acceptNextConnection();
+    startStatisticsTimer();
+    startStatusTimer();
 }
 
-void Server::do_accept()
+void TcpServer::acceptNextConnection()
 {
     acceptor_.async_accept(
-        std::bind(&Server::on_accept,
+        std::bind(&TcpServer::onAccept,
                   this,
                   std::placeholders::_1,
                   std::placeholders::_2));
 }
 
-void Server::start_statistics_timer()
+void TcpServer::startStatisticsTimer()
 {
     statisticsTimer_.expires_after(boost::asio::chrono::seconds(5));
     statisticsTimer_.async_wait(std::bind(
-        &Server::on_statistics_timer, this));
+        &TcpServer::onStatisticsTimer, this));
 }
 
-void Server::on_statistics_timer()
+void TcpServer::onStatisticsTimer()
 {
-    std::cout << " Всего подключено" << '\n' << acceptedClients_ << '\n' << "клиентов" << '\n';
-    start_statistics_timer();
+    std::cout << " Всего подключено" << '\n' << totalAcceptedConnections_ << '\n' << "клиентов" << '\n';
+    startStatisticsTimer();
 }
 
-void Server::start_status_timer()
+void TcpServer::startStatusTimer()
 {
     statusTimer_.expires_after(
         boost::asio::chrono::seconds(10));
 
     statusTimer_.async_wait(
-        std::bind(&Server::on_status_timer, this));
+        std::bind(&TcpServer::onStatusTimer, this));
 }
 
-void Server::on_status_timer()
+void TcpServer::onStatusTimer()
 {
     std::cout << "Сервер работает" << '\n';
 
-    start_status_timer();
+    startStatusTimer();
 }
 
-void Server::on_accept(const boost::system::error_code &error,
+void TcpServer::onAccept(const boost::system::error_code& error,
                        tcp::socket socket)
 {
     if (error)
@@ -64,9 +64,9 @@ void Server::on_accept(const boost::system::error_code &error,
         std::cerr << error.message() << '\n';
         return;
     }
-    ++acceptedClients_;
-    std::shared_ptr<Session> session =
-        std::make_shared<Session>(std::move(socket), database_);
+    ++totalAcceptedConnections_;
+    std::shared_ptr<ClientSession> session =
+        std::make_shared<ClientSession>(std::move(socket), database_);
     session->start();
-    do_accept();
+    acceptNextConnection();
 }

@@ -5,37 +5,36 @@
 #include <boost/asio.hpp>
 #include <iostream>
 
-int main(int ac, char **av)
+int main(int argc, char** argv)
 {
     try
     {
-        if (ac != 2 && ac != 3)
+        if (argc != 2 && argc != 3)
         {
             std::cerr << "Usage: server <config.json> [database-directory]\n";
             return 1;
         }
 
-        FileReader reader(av[1]);
-        std::string filePayload = reader.readFile();
-        ParserConfig parser;
-        EndpointConfig config = parser.parse(filePayload);
+        TextFileReader reader(argv[1]);
+        std::string configText = reader.readFile();
+        EndpointConfigParser configParser;
+        EndpointConfig config = configParser.parse(configText);
 
         std::cout << "host: " << config.host() << '\n';
         std::cout << "port: " << config.port() << '\n';
 
-        boost::asio::io_context io_context;
-        const std::filesystem::path databasePath = ac == 3
-            ? std::filesystem::path(av[2])
-            : std::filesystem::path(av[1]).parent_path() / "mock_db";
-        UserDatabase database(databasePath);
+        boost::asio::io_context ioContext;
+        const std::filesystem::path databasePath = argc == 3
+            ? std::filesystem::path(argv[2])
+            : std::filesystem::path(argv[1]).parent_path() / "mock_db";
+        UserDirectoryDatabase database(databasePath);
         std::cout << "База данных: " << databasePath << ", пользователей: " << database.size() << '\n';
-        Server server(io_context, config, database);
+        TcpServer server(ioContext, config, database);
         std::cout << "Listening on " << config.host()
                   << " port " << config.port() << std::endl;
-        io_context.run();
-
+        ioContext.run();
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         std::cerr << "Ошибка сервера: " << e.what() << '\n';
         return 1;

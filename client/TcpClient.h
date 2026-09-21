@@ -1,24 +1,25 @@
 // Клиент TCP: подключение с повторными попытками и консольная команда регистрации.
 #pragma once
+
 #include <boost/asio.hpp>
 
-class Client
+class TcpClient
 {
 public:
     using tcp = boost::asio::ip::tcp;
     using Endpoints = tcp::resolver::results_type;
 
-    Client(boost::asio::io_context& io_context, Endpoints endpoints);
+    TcpClient(boost::asio::io_context& ioContext, Endpoints endpoints);
 
-    void try_connect();
+    void tryConnect();
 
 private:
     tcp::socket socket_;
-    boost::asio::steady_timer timer_;
+    boost::asio::steady_timer reconnectTimer_;
     Endpoints endpoints_;
 
-    void on_connect(const boost::system::error_code& error,
-                    const tcp::endpoint& endpoint);
+    void onConnect(const boost::system::error_code& error,
+                   const tcp::endpoint& endpoint);
 
-    void communicate();
-    };
+    void processConsoleCommand();
+};

@@ -9,30 +9,29 @@
 
 using boost::asio::ip::tcp;
 
-int main(int ac, char **av)
+int main(int argc, char** argv)
 {
     try
     {
-        if (ac != 2)
+        if (argc != 2)
         {
             std::cerr << "Usage: client <config.json>" << std::endl;
             return 1;
         }
-        FileReader reader(av[1]);
-        std::string filePayload = reader.readFile();
-        ParserConfig configParser;
-        EndpointConfig config = configParser.parse(filePayload);
-        boost::asio::io_context io_context;
-        tcp::resolver resolver(io_context);
+        TextFileReader reader(argv[1]);
+        std::string configText = reader.readFile();
+        EndpointConfigParser configParser;
+        EndpointConfig config = configParser.parse(configText);
+        boost::asio::io_context ioContext;
+        tcp::resolver resolver(ioContext);
 
-        Client::Endpoints endpoints =
+        TcpClient::Endpoints endpoints =
             resolver.resolve(config.host(), std::to_string(config.port()));
 
-        Client client(io_context, std::move(endpoints));
-        client.try_connect();
-        io_context.run();
+        TcpClient client(ioContext, std::move(endpoints));
+        client.tryConnect();
+        ioContext.run();
     }
-
     catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;

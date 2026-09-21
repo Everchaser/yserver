@@ -1,9 +1,11 @@
 // Разбор обязательных полей host и port из JSON-конфигурации.
 #pragma once
+
 #include <string>
 #include "EndpointConfig.h"
 
-class ParserConfig {
+class EndpointConfigParser
+{
 public:
-    EndpointConfig parse(const std::string& filePayload);
+    EndpointConfig parse(const std::string& configText);
 };

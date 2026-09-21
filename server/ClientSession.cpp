@@ -5,9 +5,8 @@
 #include "JsonRequestParser.h"
 #include "CommandUtils.h"
 
-void Session::on_read(const boost::system::error_code &error,
-                      std::size_t bytes)
-
+void ClientSession::onRead(const boost::system::error_code& error,
+                           std::size_t bytes)
 {
     if (error)
     {
@@ -22,39 +21,9 @@ void Session::on_read(const boost::system::error_code &error,
     ProtocolResponse response;
     try
     {
-        const Request request = Parser().parseRequest(requestText);
+        const ProtocolRequest request = JsonRequestParser().parseRequest(requestText);
         std::cout << "Получена команда: " << request.event << '\n';
-        if (commandEquals(request.event, "healthcheck"))
-        {
-            response = {ProtocolResponse::Status::OK, "Сервер работает"};
-        }
-        else if (commandEquals(request.event, "REGISTER"))
-        {
-            const std::string login(request.data.at("login").as_string());
-            const std::string password(request.data.at("password").as_string());
-            if (login.empty() || password.empty())
-            {
-                response = {ProtocolResponse::Status::ERR, "Логин и пароль не должны быть пустыми"};
-            }
-            else
-            {
-                try
-                {
-                    response = database_.registerUser(login, password)
-                        ? ProtocolResponse{ProtocolResponse::Status::OK, "Пользователь зарегистрирован"}
-                        : ProtocolResponse{ProtocolResponse::Status::ERR, "Логин уже занят"};
-                }
-                catch (const std::exception& error)
-                {
-                    std::cerr << "Ошибка базы данных: " << error.what() << '\n';
-                    response = {ProtocolResponse::Status::ERR, "Не удалось сохранить пользователя"};
-                }
-            }
-        }
-        else
-        {
-            response = {ProtocolResponse::Status::ERR, "Неизвестная команда"};
-        }
+        response = handleRequest(request);
     }
     catch (const std::exception&)
     {
@@ -65,25 +34,55 @@ void Session::on_read(const boost::system::error_code &error,
     boost::asio::async_write(
         socket_,
         boost::asio::buffer(responseText_),
-        std::bind(&Session::on_write,
+        std::bind(&ClientSession::onWrite,
                   shared_from_this(),
                   std::placeholders::_1,
                   std::placeholders::_2));
 }
-void Session::on_write(const boost::system::error_code &error,
-                       std::size_t bytes)
+
+ProtocolResponse ClientSession::handleRequest(const ProtocolRequest& request)
+{
+    if (commandEquals(request.event, "healthcheck"))
+        return {ProtocolResponse::Status::OK, "Сервер работает"};
+    if (commandEquals(request.event, "REGISTER"))
+        return handleRegistration(request);
+    return {ProtocolResponse::Status::ERR, "Неизвестная команда"};
+}
+
+ProtocolResponse ClientSession::handleRegistration(const ProtocolRequest& request)
+{
+    const std::string login(request.data.at("login").as_string());
+    const std::string password(request.data.at("password").as_string());
+    if (login.empty() || password.empty())
+        return {ProtocolResponse::Status::ERR, "Логин и пароль не должны быть пустыми"};
+
+    try
+    {
+        return database_.registerUser(login, password)
+            ? ProtocolResponse{ProtocolResponse::Status::OK, "Пользователь зарегистрирован"}
+            : ProtocolResponse{ProtocolResponse::Status::ERR, "Логин уже занят"};
+    }
+    catch (const std::exception& error)
+    {
+        std::cerr << "Ошибка базы данных: " << error.what() << '\n';
+        return {ProtocolResponse::Status::ERR, "Не удалось сохранить пользователя"};
+    }
+}
+
+void ClientSession::onWrite(const boost::system::error_code& error,
+                            std::size_t bytes)
 {
     if (error)
         std::cerr << "Ошибка отправки: " << error.message() << '\n';
 }
-void Session::start()
-{
 
+void ClientSession::start()
+{
     // Обработчик удерживает сессию до завершения асинхронного чтения.
-    std::shared_ptr<Session> self = shared_from_this();
+    std::shared_ptr<ClientSession> self = shared_from_this();
     boost::asio::async_read_until(
         socket_, requestBuffer_, '\n',
-        std::bind(&Session::on_read,
+        std::bind(&ClientSession::onRead,
                   self,
                   std::placeholders::_1,
                   std::placeholders::_2));

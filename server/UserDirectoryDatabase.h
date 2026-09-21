@@ -8,21 +8,21 @@ struct User
 {
     std::string uuid;
     std::string login;
-    std::string password_hash;
-    std::string token_hash;
+    std::string passwordHash;
+    std::string tokenHash;
 };
 
 // Один JSON-файл на пользователя: <root>/users/<uuid>.json.
-// Вызывается из единственного потока io_context сервера.
-class UserDatabase
+// Вызывается из единственного потока ioContext сервера.
+class UserDirectoryDatabase
 {
 public:
-    explicit UserDatabase(const std::filesystem::path& root);
+    explicit UserDirectoryDatabase(const std::filesystem::path& root);
     bool hasLogin(const std::string& login) const;
     bool registerUser(const std::string& login, const std::string& password);
-    std::size_t size() const { return users_.size(); }
+    std::size_t size() const { return usersByLogin_.size(); }
 
 private:
-    std::filesystem::path directoryPath_;
-    std::unordered_map<std::string, User> users_;
+    std::filesystem::path usersDirectory_;
+    std::unordered_map<std::string, User> usersByLogin_;
 };

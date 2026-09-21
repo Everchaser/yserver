@@ -18,6 +18,7 @@ add_library(tcp_common STATIC
     shared/EndpointConfig.cpp
     shared/TextFileReader.cpp
     shared/EndpointConfigParser.cpp
+    shared/ResponseParser.cpp
     shared/JsonRequestParser.cpp
     shared/RegistrationRequestSerializer.cpp
 )

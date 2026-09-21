@@ -1,7 +1,7 @@
 #include "ClientSession.h"
 #include <iostream>
 #include <functional>
-#include "RegistrationRequestSerializer.h"
+#include "ResponseParser.h"
 #include "JsonRequestParser.h"
 
 std::string make_daytime_string()
@@ -21,15 +21,30 @@ void Session::on_read(const boost::system::error_code &error,
         return;
     }
 
-    std::string requestText(arr_, bytes);
+    std::istream requestStream(&requestBuffer_);
+    std::string requestText;
+    std::getline(requestStream, requestText);
 
-    Parser parser;
-    Request request = parser.parseRequest(requestText);
-
-    std::cout << "Получена команда: " << request.event << '\n';
-
-    // Незавершённое объявление ответа в исходном коде; требует отдельного исправления.
-    //boost::json::object;
+    ProtocolResponse response;
+    try
+    {
+        const Request request = Parser().parseRequest(requestText);
+        std::cout << "Получена команда: " << request.event << '\n';
+        if (request.event == "HEALTHCHECK" || request.event == "healthcheck" ||
+            request.event == "healthckeck" || request.event == "HEALTHCKECK")
+        {
+            response = {ProtocolResponse::Status::OK, "Сервер работает"};
+        }
+        else
+        {
+            response = {ProtocolResponse::Status::ERR, "Неизвестная команда"};
+        }
+    }
+    catch (const std::exception&)
+    {
+        response = {ProtocolResponse::Status::ERR, "Некорректный запрос"};
+    }
+    responseText_ = ResponseParser().serialize(response) + '\n';
 
     boost::asio::async_write(
         socket_,
@@ -50,8 +65,8 @@ void Session::start()
 
     // Обработчик удерживает сессию до завершения асинхронного чтения.
     std::shared_ptr<Session> self = shared_from_this();
-    socket_.async_read_some(
-        boost::asio::buffer(arr_),
+    boost::asio::async_read_until(
+        socket_, requestBuffer_, '\n',
         std::bind(&Session::on_read,
                   self,
                   std::placeholders::_1,

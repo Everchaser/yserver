@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include "JsonRequestParser.h"
+#include "ResponseParser.h"
 #include "RegistrationRequestSerializer.h"
 
 Client::Client(boost::asio::io_context &io_context, Endpoints endpoints)
@@ -68,16 +68,27 @@ void Client::communicate()
 
         requestText = serializer.serialize(login, password);
     }
+    else if (command == "/HEALTHCHECK" || command == "healthcheck" ||
+             command == "/healthcheck" || command == "healthckeck" ||
+             command == "/healthckeck" || command == "/HEALTHCKECK")
+    {
+        requestText = R"({"event":"HEALTHCHECK","data":{}})";
+    }
     else
     {
         std::cout << "Неизвестная команда\n";
         return;
     }
+    requestText += '\n';
     boost::asio::write(socket_, boost::asio::buffer(requestText));
 
-    char arr[100];
-    const std::size_t bytes = socket_.read_some(boost::asio::buffer(arr));
-    std::string responseText(arr, bytes);
+    boost::asio::streambuf responseBuffer;
+    boost::asio::read_until(socket_, responseBuffer, '\n');
+    std::istream responseStream(&responseBuffer);
+    std::string responseText;
+    std::getline(responseStream, responseText);
 
-    std::cout << responseText << '\n';
+    const auto response = ResponseParser().parseResponse(responseText);
+    std::cout << (response.status == ProtocolResponse::Status::OK ? "OK" : "ERR")
+              << ": " << response.message << '\n';
 }

@@ -23,7 +23,7 @@ public:
 
 private:
     tcp::socket socket_;
-    char arr_[100];
+    boost::asio::streambuf requestBuffer_;
     std::string responseText_;
 
     void on_read(const boost::system::error_code& error,

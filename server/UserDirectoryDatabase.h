@@ -9,5 +9,5 @@ public:
 
 private:
     const std::string directoryPath_ =
-        "/home/yasya/Desktop/data_base/user";
+        "/home/everchaser/dio";
 };

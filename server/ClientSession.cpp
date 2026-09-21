@@ -3,6 +3,7 @@
 #include <functional>
 #include "ResponseParser.h"
 #include "JsonRequestParser.h"
+#include "CommandUtils.h"
 
 std::string make_daytime_string()
 {
@@ -30,8 +31,7 @@ void Session::on_read(const boost::system::error_code &error,
     {
         const Request request = Parser().parseRequest(requestText);
         std::cout << "Получена команда: " << request.event << '\n';
-        if (request.event == "HEALTHCHECK" || request.event == "healthcheck" ||
-            request.event == "healthckeck" || request.event == "HEALTHCKECK")
+        if (commandEquals(request.event, "healthcheck"))
         {
             response = {ProtocolResponse::Status::OK, "Сервер работает"};
         }

@@ -6,6 +6,7 @@
 #include <utility>
 #include "ResponseParser.h"
 #include "RegistrationRequestSerializer.h"
+#include "CommandUtils.h"
 
 Client::Client(boost::asio::io_context &io_context, Endpoints endpoints)
     : socket_(io_context),
@@ -55,7 +56,7 @@ void Client::communicate()
     Serializer serializer;
     std::string requestText;
 
-    if (command == "/REGISTER")
+    if (commandEquals(command, "register"))
     {
         std::string login;
         std::string password;
@@ -68,9 +69,7 @@ void Client::communicate()
 
         requestText = serializer.serialize(login, password);
     }
-    else if (command == "/HEALTHCHECK" || command == "healthcheck" ||
-             command == "/healthcheck" || command == "healthckeck" ||
-             command == "/healthckeck" || command == "/HEALTHCKECK")
+    else if (commandEquals(command, "healthcheck"))
     {
         requestText = R"({"event":"HEALTHCHECK","data":{}})";
     }
